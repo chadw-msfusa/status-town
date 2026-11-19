@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "generated_at": null,
+  "notice": "No refresh has run yet. Pending retrieval is unknown, not healthy.",
+  "sources": [
+    {
+      "id": "salesforce",
+      "name": "Salesforce",
+      "status_page_url": "https://status.salesforce.com/",
+      "retrieval_status": "pending",
+      "message": "No scheduled retrieval has run yet."
+    },
+    {
+      "id": "gofundme-pro",
+      "name": "GoFundMe Pro",
+      "status_page_url": "https://status.gofundme.com/",
+      "retrieval_status": "pending",
+      "message": "No scheduled retrieval has run yet."
+    },
+    {
+      "id": "asana",
+      "name": "Asana",
+      "status_page_url": "https://status.asana.com/",
+      "retrieval_status": "pending",
+      "message": "No scheduled retrieval has run yet."
+    },
+    {
+      "id": "microsoft",
+      "name": "Microsoft Azure",
+      "status_page_url": "https://azure.status.microsoft/en-us/status",
+      "retrieval_status": "pending",
+      "message": "No scheduled retrieval has run yet. Authenticated Microsoft 365 service health is not included."
+    }
+  ],
+  "incidents": []
+}
