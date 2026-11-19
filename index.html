@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Public SaaS Status Dashboard</title>
+  <meta name="description" content="Aggregated public incident updates from Salesforce, GoFundMe Pro, Asana, and Microsoft.">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <div>
+      <p class="eyebrow">Public status monitor</p>
+      <h1>Service incident dashboard</h1>
+      <p class="subtitle">
+        Vendor-published incident information. Retrieval failures are shown as unavailable, not healthy.
+      </p>
+    </div>
+    <div class="refresh-panel" aria-live="polite">
+      <span>Last refresh</span>
+      <strong id="last-refresh">Loading…</strong>
+    </div>
+  </header>
+
+  <main id="main">
+    <section aria-labelledby="source-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Sources</p>
+          <h2 id="source-heading">Retrieval status</h2>
+        </div>
+        <button id="reload-button" type="button">Reload displayed data</button>
+      </div>
+      <div id="source-cards" class="source-grid" aria-live="polite"></div>
+    </section>
+
+    <section aria-labelledby="updates-heading">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Timeline</p>
+          <h2 id="updates-heading">Incident updates</h2>
+        </div>
+        <label class="filter">
+          Source
+          <select id="source-filter">
+            <option value="all">All sources</option>
+          </select>
+        </label>
+      </div>
+      <p class="legend">
+        Severity is a dashboard mapping of vendor impact labels:
+        <span aria-hidden="true">🌶️</span> low to
+        <span aria-hidden="true">🌶️🌶️🌶️🌶️🌶️</span> critical.
+        It is not an independent operational assessment.
+      </p>
+      <div id="messages" role="status"></div>
+      <ol id="incident-list" class="incident-list"></ol>
+    </section>
+  </main>
+
+  <footer>
+    <p>
+      This site does not perform browser-side calls to vendor APIs. A scheduled GitHub Action
+      retrieves public data and republishes this static site.
+    </p>
+  </footer>
+</body>
+</html>
