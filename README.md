@@ -1,7 +1,5 @@
 # Status Town
 
-> **Do you REALLY want to know?**
-
 A static GitHub Pages dashboard that aggregates vendor-published incident updates for:
 
 - Salesforce
