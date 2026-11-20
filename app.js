@@ -70,10 +70,19 @@ function severityDisplay(item) {
     () => `<img class="severity-icon" src="dumpster-fire.png" alt="">`
   ).join("");
 
+  const combinedLowUnspecified =
+    /\\blow\\b/i.test(suppliedLabel) &&
+    /\\b(unspecified|unknown)\\b/i.test(suppliedLabel);
+
+  const displayLabel =
+    count === 1 && combinedLowUnspecified
+      ? "Low"
+      : suppliedLabel || (count === 1 ? "Low" : "Mapped severity");
+
   return {
     ariaLabel: `Severity ${count} out of 5`,
     icons: `<span class="severity-icons" aria-hidden="true">${icons}</span>`,
-    label: suppliedLabel || "Mapped severity"
+    label: displayLabel
   };
 }
 
