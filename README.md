@@ -1,4 +1,4 @@
-# Public SaaS Status Dashboard
+# Status Dashboard
 
 A static GitHub Pages dashboard that aggregates vendor-published incident updates for:
 
