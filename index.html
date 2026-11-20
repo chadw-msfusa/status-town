@@ -60,6 +60,7 @@
       </div>
       <p class="legend">
         Severity is a dashboard mapping of vendor impact labels:
+        <span role="img" aria-label="thinking face">🤔</span> unspecified;
         <span class="severity-icons" aria-hidden="true">
           <img class="severity-icon" src="dumpster-fire.png" alt="">
         </span>
@@ -149,20 +150,72 @@
         matches.forEach(replacePepperNode);
       }
 
+      function showUnspecifiedAsThinkingFace(root = document) {
+        const severities = [];
+
+        if (root.nodeType === Node.ELEMENT_NODE && root.matches(".severity")) {
+          severities.push(root);
+        }
+
+        if (root.querySelectorAll) {
+          severities.push(...root.querySelectorAll(".severity"));
+        }
+
+        severities.forEach((severity) => {
+          const label = severity.querySelector(".severity-label");
+          if (!label || label.textContent.trim().toLowerCase() !== "unspecified") {
+            return;
+          }
+
+          severity.querySelectorAll(".severity-icon").forEach((icon) => icon.remove());
+
+          [...severity.childNodes].forEach((node) => {
+            if (node === label) return;
+            if (
+              node.nodeType === Node.TEXT_NODE ||
+              (node.nodeType === Node.ELEMENT_NODE &&
+                node.classList.contains("unspecified-icon"))
+            ) {
+              node.remove();
+            }
+          });
+
+          const icon = document.createElement("span");
+          icon.className = "unspecified-icon";
+          icon.setAttribute("role", "img");
+          icon.setAttribute("aria-label", "Unspecified severity");
+          icon.textContent = "🤔";
+          severity.insertBefore(icon, label);
+        });
+      }
+
+      function updateSeverityDisplays(root = document.body) {
+        replaceAllPeppers(root);
+        showUnspecifiedAsThinkingFace(root);
+      }
+
       const observer = new MutationObserver((mutations) => {
+        observer.disconnect();
+
         for (const mutation of mutations) {
           for (const node of mutation.addedNodes) {
             if (node.nodeType === Node.TEXT_NODE) {
               replacePepperNode(node);
+              if (node.parentElement) {
+                showUnspecifiedAsThinkingFace(node.parentElement);
+              }
             } else if (node.nodeType === Node.ELEMENT_NODE) {
-              replaceAllPeppers(node);
+              updateSeverityDisplays(node);
             }
           }
         }
+
+        showUnspecifiedAsThinkingFace(document);
+        observer.observe(document.body, { childList: true, subtree: true });
       });
 
       observer.observe(document.body, { childList: true, subtree: true });
-      replaceAllPeppers();
+      updateSeverityDisplays();
     })();
   </script>
 </body>
