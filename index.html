@@ -88,43 +88,81 @@
 
   <script>
     (() => {
-      const iconSource = "dumpster-fire.png";
-      const pepperPattern = /🌶️?/gu;
+      const pepperPattern = /🌶(?:\uFE0F)?/gu;
+      const excludedParents = new Set(["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA"]);
 
-      function replacePepperText(root = document) {
-        root.querySelectorAll(".severity").forEach((severity) => {
-          [...severity.childNodes].forEach((node) => {
-            if (node.nodeType !== Node.TEXT_NODE || !pepperPattern.test(node.textContent)) {
-              pepperPattern.lastIndex = 0;
-              return;
-            }
-
-            pepperPattern.lastIndex = 0;
-            const fragment = document.createDocumentFragment();
-            let lastIndex = 0;
-
-            for (const match of node.textContent.matchAll(pepperPattern)) {
-              fragment.append(node.textContent.slice(lastIndex, match.index));
-
-              const icon = document.createElement("img");
-              icon.className = "severity-icon";
-              icon.src = iconSource;
-              icon.alt = "";
-              icon.setAttribute("aria-hidden", "true");
-              fragment.append(icon);
-
-              lastIndex = match.index + match[0].length;
-            }
-
-            fragment.append(node.textContent.slice(lastIndex));
-            node.replaceWith(fragment);
-          });
-        });
+      function createDumpsterFireIcon() {
+        const icon = document.createElement("img");
+        icon.className = "severity-icon";
+        icon.src = "dumpster-fire.png";
+        icon.alt = "";
+        icon.setAttribute("aria-hidden", "true");
+        return icon;
       }
 
-      const observer = new MutationObserver(() => replacePepperText());
-      observer.observe(document.documentElement, { childList: true, subtree: true });
-      replacePepperText();
+      function replacePepperNode(textNode) {
+        const text = textNode.textContent;
+
+        pepperPattern.lastIndex = 0;
+        if (!text || !pepperPattern.test(text)) {
+          pepperPattern.lastIndex = 0;
+          return;
+        }
+
+        pepperPattern.lastIndex = 0;
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+
+        for (const match of text.matchAll(pepperPattern)) {
+          fragment.append(text.slice(lastIndex, match.index));
+          fragment.append(createDumpsterFireIcon());
+          lastIndex = match.index + match[0].length;
+        }
+
+        fragment.append(text.slice(lastIndex));
+        textNode.replaceWith(fragment);
+      }
+
+      function replaceAllPeppers(root = document.body) {
+        if (!root) return;
+
+        const walker = document.createTreeWalker(
+          root,
+          NodeFilter.SHOW_TEXT,
+          {
+            acceptNode(node) {
+              const parent = node.parentElement;
+              if (!parent || excludedParents.has(parent.tagName)) {
+                return NodeFilter.FILTER_REJECT;
+              }
+
+              pepperPattern.lastIndex = 0;
+              return pepperPattern.test(node.textContent)
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT;
+            }
+          }
+        );
+
+        const matches = [];
+        while (walker.nextNode()) matches.push(walker.currentNode);
+        matches.forEach(replacePepperNode);
+      }
+
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          for (const node of mutation.addedNodes) {
+            if (node.nodeType === Node.TEXT_NODE) {
+              replacePepperNode(node);
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              replaceAllPeppers(node);
+            }
+          }
+        }
+      });
+
+      observer.observe(document.body, { childList: true, subtree: true });
+      replaceAllPeppers();
     })();
   </script>
 </body>
