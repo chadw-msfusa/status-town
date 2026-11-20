@@ -11,7 +11,11 @@ let dashboardData = null;
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, character => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
   })[character]);
 }
 
@@ -29,12 +33,48 @@ function formatDate(value) {
   const date = new Date(value);
   return Number.isNaN(date.valueOf())
     ? "Unknown time"
-    : new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
+    : new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(date);
 }
 
-function peppers(level) {
-  const count = Math.max(1, Math.min(5, Number(level) || 1));
-  return "🌶️".repeat(count);
+function incidentTimestamp(value) {
+  const timestamp = new Date(value || "").valueOf();
+  return Number.isNaN(timestamp) ? Number.NEGATIVE_INFINITY : timestamp;
+}
+
+function severityDisplay(item) {
+  const rawLevel = item?.severity;
+  const suppliedLabel = String(item?.severity_label || "").trim();
+  const numericLevel = Number(rawLevel);
+  const isUnspecified =
+    rawLevel === null ||
+    rawLevel === undefined ||
+    rawLevel === "" ||
+    !Number.isFinite(numericLevel) ||
+    numericLevel < 1 ||
+    /^(unspecified|unknown)$/i.test(suppliedLabel);
+
+  if (isUnspecified) {
+    return {
+      ariaLabel: "Severity unspecified",
+      icons: `<span class="unspecified-icon" aria-hidden="true">🤔</span>`,
+      label: suppliedLabel || "Unspecified"
+    };
+  }
+
+  const count = Math.max(1, Math.min(5, Math.round(numericLevel)));
+  const icons = Array.from(
+    { length: count },
+    () => `<img class="severity-icon" src="dumpster-fire.png" alt="">`
+  ).join("");
+
+  return {
+    ariaLabel: `Severity ${count} out of 5`,
+    icons: `<span class="severity-icons" aria-hidden="true">${icons}</span>`,
+    label: suppliedLabel || "Mapped severity"
+  };
 }
 
 function renderSources(sources) {
@@ -54,55 +94,78 @@ function renderSources(sources) {
 
 function renderFilter(sources) {
   const current = sourceFilter.value;
-  sourceFilter.innerHTML = `<option value="all">All sources</option>` + sources.map(source =>
-    `<option value="${escapeHtml(source.id)}">${escapeHtml(source.name)}</option>`
-  ).join("");
-  sourceFilter.value = [...sourceFilter.options].some(option => option.value === current) ? current : "all";
+  sourceFilter.innerHTML =
+    `<option value="all">All sources</option>` +
+    sources.map(source =>
+      `<option value="${escapeHtml(source.id)}">${escapeHtml(source.name)}</option>`
+    ).join("");
+
+  sourceFilter.value = [...sourceFilter.options].some(
+    option => option.value === current
+  ) ? current : "all";
 }
 
 function renderIncidents() {
   const filter = sourceFilter.value;
-  const incidents = (dashboardData?.incidents || []).filter(item => filter === "all" || item.source_id === filter);
+  const incidents = [...(dashboardData?.incidents || [])]
+    .filter(item => filter === "all" || item.source_id === filter)
+    .sort((a, b) =>
+      incidentTimestamp(b.published_at) - incidentTimestamp(a.published_at)
+    );
 
   if (!incidents.length) {
-    const availableCount = (dashboardData?.sources || []).filter(source => source.retrieval_status === "available").length;
+    const availableCount = (dashboardData?.sources || []).filter(
+      source => source.retrieval_status === "available"
+    ).length;
     const wording = availableCount
       ? "No incident updates were returned by the selected successfully retrieved source(s). Check unavailable source cards separately."
       : "No incident data is available. This must not be interpreted as all services being healthy.";
+
     incidentList.innerHTML = "";
     messages.innerHTML = `<p class="message">${escapeHtml(wording)}</p>`;
     return;
   }
 
   messages.innerHTML = "";
-  incidentList.innerHTML = incidents.map(item => `
-    <li class="incident">
-      <article>
-        <div class="incident-top">
-          <div>
-            <div class="incident-source">${escapeHtml(item.source_name)}</div>
-            <h3>${escapeHtml(item.title || "Untitled vendor incident")}</h3>
+  incidentList.innerHTML = incidents.map(item => {
+    const severity = severityDisplay(item);
+
+    return `
+      <li class="incident">
+        <article>
+          <div class="incident-top">
+            <div>
+              <div class="incident-source">${escapeHtml(item.source_name)}</div>
+              <h3>${escapeHtml(item.title || "Untitled vendor incident")}</h3>
+            </div>
+            <div class="severity" aria-label="${escapeHtml(severity.ariaLabel)}">
+              ${severity.icons}
+              <span class="severity-label">${escapeHtml(severity.label)}</span>
+            </div>
           </div>
-          <div class="severity" aria-label="Severity ${escapeHtml(item.severity)} out of 5">
-            <span aria-hidden="true">${peppers(item.severity)}</span>
-            <span class="severity-label">${escapeHtml(item.severity_label || "mapped severity")}</span>
+          <p class="update-body">${escapeHtml(item.body || "No update text supplied by the source.")}</p>
+          <div class="meta">
+            <time datetime="${escapeHtml(item.published_at || "")}">${escapeHtml(formatDate(item.published_at))}</time>
+            <span>Vendor status: ${escapeHtml(item.vendor_status || "unknown")}</span>
+            <a href="${safeUrl(item.source_url)}" rel="noopener noreferrer">Original source</a>
           </div>
-        </div>
-        <p class="update-body">${escapeHtml(item.body || "No update text supplied by the source.")}</p>
-        <div class="meta">
-          <time datetime="${escapeHtml(item.published_at || "")}">${escapeHtml(formatDate(item.published_at))}</time>
-          <span>Vendor status: ${escapeHtml(item.vendor_status || "unknown")}</span>
-          <a href="${safeUrl(item.source_url)}" rel="noopener noreferrer">Original source</a>
-        </div>
-      </article>
-    </li>`).join("");
+        </article>
+      </li>`;
+  }).join("");
 }
 
 async function loadData() {
   messages.innerHTML = `<p class="message">Loading dashboard data…</p>`;
+
   try {
-    const response = await fetch(`${DATA_URL}?cache=${Date.now()}`, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Dashboard data returned HTTP ${response.status}`);
+    const response = await fetch(`${DATA_URL}?cache=${Date.now()}`, {
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(`Dashboard data returned HTTP ${response.status}`);
+    }
+
     dashboardData = await response.json();
     lastRefresh.textContent = formatDate(dashboardData.generated_at);
     renderSources(dashboardData.sources || []);
@@ -113,7 +176,11 @@ async function loadData() {
     lastRefresh.textContent = "Unavailable";
     sourceCards.innerHTML = "";
     incidentList.innerHTML = "";
-    messages.innerHTML = `<p class="message"><strong>Dashboard data unavailable.</strong> ${escapeHtml(error.message)}. This is not a healthy-status indication.</p>`;
+    messages.innerHTML = `
+      <p class="message">
+        <strong>Dashboard data unavailable.</strong>
+        ${escapeHtml(error.message)}. This is not a healthy-status indication.
+      </p>`;
   }
 }
 
