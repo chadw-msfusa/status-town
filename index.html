@@ -13,7 +13,7 @@
   <header class="site-header">
     <figure class="header-image">
       <img
-        src="images/TD.jpg"
+        src="TD.jpg"
         alt="Status Town"
         width="474"
         height="296"
@@ -22,7 +22,6 @@
 
     <div class="header-content">
       <div class="header-copy">
-        <p class="eyebrow">Public status monitor</p>
         <h1>Status Town</h1>
         <p class="subtitle">do you REALLY want to know?</p>
       </div>
@@ -37,6 +36,10 @@
   <main id="main">
     <section aria-labelledby="source-heading">
       <div class="section-heading">
+        <div>
+          <p class="eyebrow">Sources</p>
+          <h2 id="source-heading">Retrieval status</h2>
+        </div>
         <button id="reload-button" type="button">Reload displayed data</button>
       </div>
       <div id="source-cards" class="source-grid" aria-live="polite"></div>
@@ -56,9 +59,20 @@
         </label>
       </div>
       <p class="legend">
-        Severity is one pepper not too bad to FIVE PEPPERS yea, it's def broken!:
-        <span aria-hidden="true">🌶️</span> low to
-        <span aria-hidden="true">🌶️🌶️🌶️🌶️🌶️</span> critical.
+        Severity is a dashboard mapping of vendor impact labels:
+        <span class="severity-icons" aria-hidden="true">
+          <img class="severity-icon" src="dumpster-fire.png" alt="">
+        </span>
+        low to
+        <span class="severity-icons" aria-hidden="true">
+          <img class="severity-icon" src="dumpster-fire.png" alt="">
+          <img class="severity-icon" src="dumpster-fire.png" alt="">
+          <img class="severity-icon" src="dumpster-fire.png" alt="">
+          <img class="severity-icon" src="dumpster-fire.png" alt="">
+          <img class="severity-icon" src="dumpster-fire.png" alt="">
+        </span>
+        critical.
+        It is not an independent operational assessment.
       </p>
       <div id="messages" role="status"></div>
       <ol id="incident-list" class="incident-list"></ol>
@@ -71,5 +85,47 @@
       retrieves public data and republishes this static site.
     </p>
   </footer>
+
+  <script>
+    (() => {
+      const iconSource = "dumpster-fire.png";
+      const pepperPattern = /🌶️?/gu;
+
+      function replacePepperText(root = document) {
+        root.querySelectorAll(".severity").forEach((severity) => {
+          [...severity.childNodes].forEach((node) => {
+            if (node.nodeType !== Node.TEXT_NODE || !pepperPattern.test(node.textContent)) {
+              pepperPattern.lastIndex = 0;
+              return;
+            }
+
+            pepperPattern.lastIndex = 0;
+            const fragment = document.createDocumentFragment();
+            let lastIndex = 0;
+
+            for (const match of node.textContent.matchAll(pepperPattern)) {
+              fragment.append(node.textContent.slice(lastIndex, match.index));
+
+              const icon = document.createElement("img");
+              icon.className = "severity-icon";
+              icon.src = iconSource;
+              icon.alt = "";
+              icon.setAttribute("aria-hidden", "true");
+              fragment.append(icon);
+
+              lastIndex = match.index + match[0].length;
+            }
+
+            fragment.append(node.textContent.slice(lastIndex));
+            node.replaceWith(fragment);
+          });
+        });
+      }
+
+      const observer = new MutationObserver(() => replacePepperText());
+      observer.observe(document.documentElement, { childList: true, subtree: true });
+      replacePepperText();
+    })();
+  </script>
 </body>
 </html>
