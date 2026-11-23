@@ -184,6 +184,24 @@ async function loadData() {
   }
 }
 
+const AUTO_REFRESH_INTERVAL_MS = 5 * 60 * 1000;
+
 sourceFilter.addEventListener("change", renderIncidents);
 reloadButton.addEventListener("click", loadData);
+
+// Load the newest deployed status data when the page opens.
 loadData();
+
+// Check for newly deployed data every five minutes while the tab is visible.
+setInterval(() => {
+  if (!document.hidden) {
+    loadData();
+  }
+}, AUTO_REFRESH_INTERVAL_MS);
+
+// Refresh immediately when the user returns to the tab.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    loadData();
+  }
+});
