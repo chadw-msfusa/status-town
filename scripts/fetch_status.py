@@ -339,7 +339,7 @@ def microsoft_events() -> tuple[dict[str, Any], list[dict[str, Any]]]:
         source_record(
             source_id, source_name, page_url, "available",
             f"Azure public feed retrieved successfully; {len(events)} update(s) returned. "
-            "This does not represent authenticated Microsoft 365 service health.",
+            "This does not show Microsoft 365 service.",
             feed_url,
         ),
         events,
